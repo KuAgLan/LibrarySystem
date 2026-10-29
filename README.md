@@ -26,18 +26,31 @@ Java 控制台版图书管理系统，覆盖**图书 / 读者 / 借还 / 预约 
 ## 环境要求
 
 - **JDK 17**（`javac`、`jar` 在 PATH 里即可）
-- **MySQL 8.0+** 或 **MariaDB 10.6+**（本项目在 MariaDB 11.4 上实测；SQL 为标准 MySQL 语法）
+- **MySQL 8.0+**（已在 **MySQL 8.0.46** 上实测；MariaDB 10.6+ 同样可用）
 - 驱动：`lib/mysql-connector-j-8.0.33.jar`（已附带，无需联网）
 
 ## 快速开始
 
-### 1. 建库建表
+### 一键初始化（推荐）
+
+```bat
+setup-mysql.bat
+```
+
+它会依次做四件事，中途只问你一次 MySQL 的 root 密码（不落盘）：
+
+1. 建库 `library`（utf8mb4）
+2. 建应用账号 `library / library123`，授予 `library.*` 权限
+3. 建表 + 灌示例数据（10 本书、4 位读者）
+4. 跑 17 项自测，全过才提示「全部就绪」
+
+### 手动方式
 
 ```sql
--- 方式一：直接执行脚本
+-- 建库建表
 mysql -u root -p < sql/schema.sql
 
--- 方式二：让程序自己建（推荐，可重复执行）
+-- 或者让程序自己建（可重复执行）
 run.bat --init-db
 ```
 
@@ -73,6 +86,8 @@ build.bat            :: 编译 + 打包 library-system.jar
 run.bat --seed       :: 灌 10 本书 + 4 位读者
 run.bat              :: 进菜单
 ```
+
+默认连接：`127.0.0.1:3306/library`，账号 `library` / `library123`（在 `Db.java` 里可改）。
 
 菜单：
 
