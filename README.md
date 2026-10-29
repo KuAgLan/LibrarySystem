@@ -3,11 +3,12 @@
 # 图书管理系统 · LibrarySystem
 
 Java 控制台版图书管理系统，覆盖**图书 / 读者 / 借还 / 预约 / 统计报表**五块业务。
-**Java 17 + JDBC + MySQL（InnoDB）**，自带 **17 项业务规则自测**，其中包含 10 线程并发抢书的验证。
+**Java 17 + JDBC + MySQL（InnoDB）**，自带 **35 项自测**（业务规则 + 并发 + 分布式锁），并实现了 MySQL / Redis 两套分布式锁。
 
 ![Java](https://img.shields.io/badge/Java-17-orange)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0%2B%20%7C%20MariaDB%2010.6%2B-4479A1)
-![Tests](https://img.shields.io/badge/selftest-17%20passed-2ea44f)
+![Tests](https://img.shields.io/badge/selftest-35%20passed-2ea44f)
+![Lock](https://img.shields.io/badge/distributed%20lock-MySQL%20%7C%20Redis-c1121f)
 ![License](https://img.shields.io/badge/license-MIT-d8b04a)
 
 </div>
@@ -22,12 +23,14 @@ Java 控制台版图书管理系统，覆盖**图书 / 读者 / 借还 / 预约 
 | 预约 | 无可借副本时排队，归还时按先来后到通知队列第一位 |
 | 报表 | 分类借阅量、月度趋势、热门 TOP 10、逾期名单、导出 CSV |
 | 审计 | 所有写操作写 `audit_log`，可追溯 |
+| 分布式锁 | MySQL / Redis 两套实现；每日结算任务多实例只跑一个，带 TTL、owner 校验与看门狗续期 |
 
 ## 环境要求
 
 - **JDK 17**（`javac`、`jar` 在 PATH 里即可）
 - **MySQL 8.0+**（已在 **MySQL 8.0.46** 上实测；MariaDB 10.6+ 同样可用）
 - 驱动：`lib/mysql-connector-j-8.0.33.jar`（已附带，无需联网）
+- **Redis（可选）**：只有用 `--lock=redis` 跑分布式锁演示时才需要，默认走 MySQL 锁
 
 ## 在 IDEA 里运行
 
@@ -66,7 +69,7 @@ setup-mysql.bat
 1. 建库 `library`（utf8mb4）
 2. 建应用账号 `library / library123`，授予 `library.*` 权限
 3. 建表 + 灌示例数据（10 本书、4 位读者）
-4. 跑 17 项自测，全过才提示「全部就绪」
+4. 跑全部自测（35 项），全过才提示「全部就绪」
 
 ### 手动方式
 
@@ -121,11 +124,20 @@ run.bat              :: 进菜单
 5. 统计报表      0. 退出
 ```
 
+### 想试 Redis 版分布式锁
+
+```bat
+:: 起一个本地 Redis（有现成的就跳过这行）
+redis-server --port 6379
+:: 用 Redis 锁跑结算任务
+java -cp "out;lib/mysql-connector-j-8.0.33.jar" library.Main --settle --lock=redis --redis=127.0.0.1:6379
+```
+
 ### 其它命令
 
 ```bat
 run.bat --demo            :: 演示：借书 → 逾期 → 预约 → 报表（会清库重建）
-run.bat --selftest        :: 17 项业务规则自测
+run.bat --selftest        :: 全部自测（35 项：业务规则 + 并发 + 分布式锁）
 run.bat --report out.csv  :: 导出热门图书 CSV
 run.bat --settle          :: 每日结算（分布式锁保护，多实例只跑一个）
     --lock=redis --redis=127.0.0.1:6379   换 Redis 实现
@@ -154,6 +166,7 @@ run.bat --help
 | `loans` | 借阅记录，`returned_at IS NULL` 表示未归还，外键指向 books / readers |
 | `reservations` | 预约队列，`notified_at` 记录是否已通知 |
 | `audit_log` | 写操作审计 |
+| `lock_guard` | 分布式锁（name 主键 / owner / expires_at），仅 MySQL 锁实现在用 |
 
 索引：
 
@@ -187,7 +200,6 @@ KEY idx_res_book (book_id, cancelled, created_at)    -- 预约队列取队首
   ✔ 只有 1 个线程借成功
   ✔ 库存没有变成负数
 ```
-
 
 ## 分布式锁
 
@@ -277,7 +289,17 @@ $ run.bat --selftest
   ✔ 只有 1 个线程借成功
   ✔ 库存没有变成负数
 
-结果：17 通过，0 失败
+── 分布式锁 · MySQL ──
+  ✔ 拿到锁                ✔ 别人拿不到同一把锁
+  ✔ 非持有者释放无效      ✔ 持有者能续期
+  ✔ 续期后仍归自己        ✔ 持有者能释放
+  ✔ 释放后别人能拿到      ✔ 短 TTL 拿到锁
+  ✔ 过期后可被他人抢占
+
+── 分布式锁 · Redis ──
+  （同上 9 项，本机没有 Redis 时打印「跳过」）
+
+结果：35 通过，0 失败
 ```
 
 完整演示输出见 [`docs/demo.txt`](docs/demo.txt)。
@@ -315,7 +337,8 @@ LibrarySystem/
 
 - 控制台界面，没有 GUI（课程设计场景够用，重点在业务规则与数据一致性）；
 - 罚金规则（0.5 元/天、20 元封顶）写在 `LibraryService` 常量里，实际业务应做成配置项；
-- 未做分布式锁：单机 MySQL 靠行锁足够，多实例写同一套数据还需上层协调。
+- 分布式锁是**单节点**实现：Redis 版没做 Redlock 多节点容错，主从切换瞬间可能丢锁；
+- 锁的语义是「拿不到就跳过」，没有排队等待 / 重试退避（定时任务场景够用）。
 
 ## 许可
 
