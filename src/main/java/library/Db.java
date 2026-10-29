@@ -5,6 +5,23 @@ import java.sql.*;
 /** 连接管理 + 建库建表 + 事务辅助。 */
 public class Db {
 
+    static {
+        // 显式注册驱动：IDEA 里直接跑 Main.java 时，如果没把驱动加进 Dependencies，
+        // 这里会给出可读的提示，而不是一句干巴巴的 "No suitable driver"。
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            System.err.println();
+            System.err.println("[!] 没找到 MySQL 驱动 com.mysql.cj.jdbc.Driver");
+            System.err.println("    请在 IDEA 里把它加进依赖：");
+            System.err.println("    File → Project Structure → Modules → Dependencies → + → JARs or directories");
+            System.err.println("    选中 lib/mysql-connector-j-8.0.33.jar → OK → Apply");
+            System.err.println("    （或者用 Maven 打开本项目，pom.xml 里已经声明了依赖）");
+            System.err.println();
+            throw new IllegalStateException("缺少 MySQL JDBC 驱动", e);
+        }
+    }
+
     private static String url = "jdbc:mysql://127.0.0.1:3306/library"
             + "?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=utf8"
             + "&serverTimezone=Asia/Shanghai";

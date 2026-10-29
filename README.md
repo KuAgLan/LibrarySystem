@@ -29,6 +29,30 @@ Java 控制台版图书管理系统，覆盖**图书 / 读者 / 借还 / 预约 
 - **MySQL 8.0+**（已在 **MySQL 8.0.46** 上实测；MariaDB 10.6+ 同样可用）
 - 驱动：`lib/mysql-connector-j-8.0.33.jar`（已附带，无需联网）
 
+## 在 IDEA 里运行
+
+**方式 A：当 Maven 项目打开（推荐）**
+
+`File → Open` 选中本目录，IDEA 会自动识别 `pom.xml` 并下载 `mysql-connector-j` 依赖，
+然后直接运行 `library.Main` 即可。
+
+**方式 B：普通 Java 项目（不加 Maven）**
+
+直接运行 `Main.java` 会报 `No suitable driver found`，因为驱动没进依赖。手动加一下：
+
+```
+File → Project Structure (Ctrl+Alt+Shift+S)
+  → Modules → Dependencies → + → JARs or directories
+  → 选 lib/mysql-connector-j-8.0.33.jar → OK → Apply
+```
+
+**方式 C：不折腾 IDE，直接用打包好的 jar**
+
+```bat
+setup-mysql.bat   :: 首次初始化（建库 + 建号 + 灌数据 + 自测）
+run.bat           :: 进菜单
+```
+
 ## 快速开始
 
 ### 一键初始化（推荐）
