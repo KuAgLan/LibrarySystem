@@ -1,0 +1,20 @@
+分布式锁演示：两个独立 JVM 同时触发每日结算，只有一个真正执行
+命令：java -cp "out;lib/mysql-connector-j-8.0.33.jar" library.Main --settle --settle-ms 3000 --lock=mysql|redis
+
+===== 1) MySQL 锁（lock_guard 表）=====
+[实例 B]
+[MySQL(lock_guard 表)] 结算任务 没执行
+  跳过：锁被其他实例占用（holder=2c5a24c1）
+[实例 A]
+[MySQL(lock_guard 表)] 结算任务 执行了
+  完成：逾期 0 册，预估罚金 0.00 元（实例 self）
+  耗时 3096 ms
+
+===== 2) Redis 锁（SET NX PX + Lua 释放）=====
+[实例 B]
+[Redis(127.0.0.1:6379)] 结算任务 没执行
+  跳过：锁被其他实例占用（holder=bf2a82b6）
+[实例 A]
+[Redis(127.0.0.1:6379)] 结算任务 执行了
+  完成：逾期 0 册，预估罚金 0.00 元（实例 self）
+  耗时 3075 ms

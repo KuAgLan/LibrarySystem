@@ -67,3 +67,12 @@ CREATE TABLE IF NOT EXISTS audit_log (
             detail VARCHAR(200) DEFAULT NULL,
             PRIMARY KEY (id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 分布式锁表（MysqlLock 也会在启动时自动创建，这里只是留档）
+CREATE TABLE IF NOT EXISTS lock_guard (
+    name        VARCHAR(64)  NOT NULL,
+    owner       VARCHAR(64)  NOT NULL,
+    acquired_at DATETIME(3)  NOT NULL,
+    expires_at  DATETIME(3)  NOT NULL,
+    PRIMARY KEY (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

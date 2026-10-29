@@ -127,6 +127,8 @@ run.bat              :: 进菜单
 run.bat --demo            :: 演示：借书 → 逾期 → 预约 → 报表（会清库重建）
 run.bat --selftest        :: 17 项业务规则自测
 run.bat --report out.csv  :: 导出热门图书 CSV
+run.bat --settle          :: 每日结算（分布式锁保护，多实例只跑一个）
+    --lock=redis --redis=127.0.0.1:6379   换 Redis 实现
 run.bat --reset           :: 删库重建（危险）
 run.bat --help
 ```
@@ -186,6 +188,65 @@ KEY idx_res_book (book_id, cancelled, created_at)    -- 预约队列取队首
   ✔ 库存没有变成负数
 ```
 
+
+## 分布式锁
+
+借书靠的是「条件更新 + InnoDB 行锁」，单库足够。但**定时任务**这类跨实例的互斥，
+行锁管不了（多个应用服务器各连各的库，也各跑各的定时器）。为此项目里实现了一套分布式锁：
+
+```
+library.lock.DistributedLock      // 接口：tryLock / renew / unlock / holder
+library.lock.MysqlLock            // 实现一：lock_guard 表（不引入中间件）
+library.lock.RedisLock            // 实现二：Redis SET NX PX + Lua（手写 RESP 客户端，零依赖）
+library.service.NightlySettle     // 使用方：每日结算任务，多实例只跑一个
+```
+
+### 语义
+
+| 要求 | 做法 |
+| --- | --- |
+| 互斥 | MySQL：`INSERT ... ON DUPLICATE KEY UPDATE`（只有过期行才可改写）<br>Redis：`SET key owner NX PX ttl` |
+| 防死锁 | 锁带 TTL，持有者崩溃后自动过期 |
+| 防误删 | 释放时校验 owner：MySQL `DELETE ... WHERE owner=?`；Redis 用 Lua `if get==owner then del` |
+| 防锁过期 | 看门狗线程每 `ttl/3` 续期一次（`NightlySettle` 里演示），续期失败即中止任务 |
+
+> 释放为什么必须用 Lua？如果先 `GET` 再 `DEL`，判断完到删除之间锁可能刚好过期被别人抢到，
+> 结果把**别人的锁**删了——这是分布式锁最经典的坑。
+
+### 演示：两个 JVM 同时触发结算
+
+```bat
+:: 窗口 A
+java -cp "out;lib/mysql-connector-j-8.0.33.jar" library.Main --settle --settle-ms 3000 --lock=mysql
+:: 窗口 B（1 秒后）
+java -cp "out;lib/mysql-connector-j-8.0.33.jar" library.Main --settle --settle-ms 3000 --lock=mysql
+```
+
+```
+[实例 A] [MySQL(lock_guard 表)] 结算任务 执行了
+         完成：逾期 0 册，预估罚金 0.00 元   耗时 3096 ms
+
+[实例 B] [MySQL(lock_guard 表)] 结算任务 没执行
+         跳过：锁被其他实例占用（holder=2c5a24c1）
+```
+
+换成 `--lock=redis` 效果一致（需要本地 Redis，`--redis=127.0.0.1:6379`）。
+完整记录见 [`docs/lock-demo.txt`](docs/lock-demo.txt)。
+
+### 两种实现怎么选
+
+| | MySQL 锁 | Redis 锁 |
+| --- | --- | --- |
+| 额外依赖 | 无 | 需要 Redis |
+| 性能 | 每次抢锁一次写库，高频场景有压力 | 内存操作，微秒级 |
+| 可靠性 | 依赖数据库可用性 | 依赖 Redis 可用性（可用 Redlock 多节点） |
+| 适用 | 低频任务（定时结算、报表），本项目默认 | 高频、短临界区（限流、库存扣减） |
+
+### 自测覆盖
+
+`--selftest` 里对两种实现各跑 9 条断言：抢锁、互斥、非持有者释放无效、续期、
+释放后可重入、TTL 过期可被抢占（`结果：35 通过，0 失败`）。
+
 ## 自测
 
 ```
@@ -240,7 +301,12 @@ LibrarySystem/
     Table.java               等宽表格（中文按 2 列宽对齐）
     SampleData.java          示例数据
     Demo.java                一键演示
-    SelfTest.java            17 项业务规则断言
+    SelfTest.java            业务规则 + 分布式锁断言（35 项）
+    lock/DistributedLock.java  分布式锁接口
+    lock/MysqlLock.java        实现一：lock_guard 表
+    lock/RedisLock.java        实现二：Redis + Lua（内置极简 RESP 客户端）
+    lock/Locks.java            按 --lock=mysql|redis 选择实现
+    service/NightlySettle.java 用锁保护的每日结算任务
 ```
 
 分层是 `Menu → LibraryService → Dao → JDBC → MySQL`：Service 不碰 `System.in`，Dao 不碰业务规则，所以自测能直接调 Service 跑断言。

@@ -1,5 +1,8 @@
 package library;
 
+import library.lock.Locks;
+import library.service.NightlySettle;
+
 /** 入口：解析参数并分发。 */
 public final class Main {
 
@@ -25,6 +28,8 @@ public final class Main {
                   java -jar library-system.jar --demo              演示：借书 → 逾期 → 预约 → 报表
                   java -jar library-system.jar --selftest          17 项业务规则自测
                   java -jar library-system.jar --report out.csv    导出热门图书报表
+                  java -jar library-system.jar --settle            每日结算（分布式锁保护，多实例只跑一个）
+                    --lock=mysql|redis  --redis=127.0.0.1:6379  --settle-ms=2000  --lock-ttl=5000
                   java -jar library-system.jar --reset             删库重建（危险）
 
                 连接参数（也可用环境变量 LIB_URL / LIB_USER / LIB_PASSWORD）：
@@ -32,6 +37,21 @@ public final class Main {
                   --user     root
                   --password ******
                 """);
+            return;
+        }
+
+        Locks.configure(arg(args, "--lock", null), arg(args, "--redis", null));
+
+        if (has(args, "--settle")) {
+            long workMs = Long.parseLong(arg(args, "--settle-ms", "2000"));
+            long ttlMs = Long.parseLong(arg(args, "--lock-ttl", "5000"));
+            Db.initSchema();
+            var outcome = NightlySettle.run(Locks.create(), java.time.Duration.ofMillis(ttlMs), workMs);
+            System.out.printf("[%s] 结算任务 %s%n",
+                    Locks.describe(),
+                    outcome.ran ? "执行了" : "没执行");
+            System.out.println("  " + outcome.message);
+            if (outcome.ran) System.out.println("  耗时 " + outcome.elapsedMs + " ms");
             return;
         }
 
@@ -58,8 +78,13 @@ public final class Main {
         return false;
     }
 
+    /** 同时支持 --key value 和 --key=value 两种写法。 */
     private static String arg(String[] args, String flag, String fallback) {
-        for (int i = 0; i < args.length - 1; i++) if (args[i].equalsIgnoreCase(flag)) return args[i + 1];
+        String prefix = flag.toLowerCase() + "=";
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equalsIgnoreCase(flag) && i + 1 < args.length) return args[i + 1];
+            if (args[i].toLowerCase().startsWith(prefix)) return args[i].substring(prefix.length());
+        }
         return fallback;
     }
 }

@@ -1,6 +1,8 @@
 package library;
 
 import library.Models.*;
+import library.lock.*;
+import java.time.Duration;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -23,6 +25,17 @@ public final class SelfTest {
         fineRules(svc);
         reservationQueue(svc);
         concurrentBorrow();
+
+        section("分布式锁 · MySQL");
+        lockSuite(new MysqlLock());
+
+        if (redisAvailable()) {
+            section("分布式锁 · Redis");
+            lockSuite(new RedisLock("127.0.0.1:6379", "test-lock:"));
+        } else {
+            section("分布式锁 · Redis");
+            System.out.println("  - 跳过（127.0.0.1:6379 没有可用的 Redis）");
+        }
 
         System.out.println();
         System.out.printf("结果：%d 通过，%d 失败%n", pass, fail);
@@ -110,6 +123,45 @@ public final class SelfTest {
                 boolean ok = rs.next() && rs.getLong(1) == b;
                 check("归还后通知队列第一位（乙）", ok, "");
             }
+        }
+    }
+
+    // ------------------------------------------------------------ 分布式锁
+
+    /** 锁的共性断言：互斥、释放、非持有者、TTL 过期、续期。 */
+    private static void lockSuite(DistributedLock lock) throws Exception {
+        String key = "selftest:" + java.util.UUID.randomUUID();
+        Duration ttl = Duration.ofMillis(800);
+
+        check("拿到锁", lock.tryLock(key, ttl), "");
+        check("别人拿不到同一把锁", !newOther(lock).tryLock(key, ttl), "");
+        check("非持有者释放无效", !newOther(lock).unlock(key), "锁仍在");
+        check("持有者能续期", lock.renew(key, ttl), "");
+        check("续期后仍归自己", lock.owner().equals(lock.holder(key)), "");
+        check("持有者能释放", lock.unlock(key), "");
+        DistributedLock other = newOther(lock);
+        check("释放后别人能拿到", other.tryLock(key, ttl), "");
+        other.unlock(key);
+
+        // TTL 过期后允许抢占
+        check("短 TTL 拿到锁", lock.tryLock(key, Duration.ofMillis(250)), "");
+        Thread.sleep(400);
+        DistributedLock other2 = newOther(lock);
+        check("过期后可被他人抢占", other2.tryLock(key, ttl), "");
+        other2.unlock(key);
+    }
+
+    /** 同一后端的另一个"实例"（模拟另一台服务器）。 */
+    private static DistributedLock newOther(DistributedLock like) {
+        if (like instanceof MysqlLock) return new MysqlLock();
+        return new RedisLock("127.0.0.1:6379", "test-lock:");
+    }
+
+    private static boolean redisAvailable() {
+        try (RedisLock r = new RedisLock("127.0.0.1:6379", "test-lock:")) {
+            return r.tryLock("ping-check", Duration.ofMillis(500));
+        } catch (Exception e) {
+            return false;
         }
     }
 
