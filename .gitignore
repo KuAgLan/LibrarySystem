@@ -1,0 +1,9 @@
+out/
+*.class
+*.jar.tmp
+top_books.csv
+out.csv
+.idea/
+*.iml
+.vs/
+.vscode/
