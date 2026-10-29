@@ -8,8 +8,8 @@ public class Db {
     private static String url = "jdbc:mysql://127.0.0.1:3306/library"
             + "?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=utf8"
             + "&serverTimezone=Asia/Shanghai";
-    private static String user = "root";
-    private static String password = "";
+    private static String user = "library";
+    private static String password = "library123";
 
     public static void configure(String jdbcUrl, String dbUser, String dbPassword) {
         if (jdbcUrl != null) url = jdbcUrl;
