@@ -113,6 +113,8 @@ CREATE TABLE lock_guard (
 - 释放校验 owner：只允许持有者释放，避免过期后误删别人的锁
 - 管理接口：`POST /admin/jobs/settle`（含 `holdMs` 并发演练参数）、`GET /admin/jobs/locks`；系统设置页提供「立即执行 / 并发演练」按钮
 
+安装与切换细节见 **[docs/LOCKS.md](docs/LOCKS.md)**（含 Windows / Linux / Docker 安装、LOCK_PROVIDER 切换、Redis 实测 8 项）。
+
 验证脚本 `docs/tests/lock-test.mjs`（10 项全绿）：
 
 ```text
