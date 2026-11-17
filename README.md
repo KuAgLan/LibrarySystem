@@ -168,6 +168,13 @@ CREATE TABLE lock_guard (
 - **预约联动**：归还时把队首预约置为 `NOTIFIED`；有预约排队时禁止续借
 - **管理端实时性**：借阅规则存 `setting` 表，修改后对新借阅立即生效，无需重启
 
+## 📚 文档
+
+| 文档 | 内容 |
+| --- | --- |
+| [docs/PROJECT-INTRO.md](docs/PROJECT-INTRO.md) | 项目介绍 / 演示 / 结构 / 技术选型 / 架构图 / 模块说明 / 环境搭建 |
+| [docs/LOCKS.md](docs/LOCKS.md) | MySQL / Redis 分布式锁原理、配置切换与实测 |
+| [docs/tests](docs/tests) | 3 个验收脚本：接口、身份权限、分布式锁 |
 ## 📁 目录
 
 ```
