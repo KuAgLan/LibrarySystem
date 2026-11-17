@@ -1,4 +1,26 @@
 <template>
+  <div>
+    <div v-if="auth.isAdmin" class="card" style="max-width: 780px; margin-bottom: 16px">
+      <div class="card-title">任务调度
+        <span class="tiny muted">分布式锁保护，多实例部署只执行一次</span>
+      </div>
+      <div class="job-row">
+        <div>
+          <div class="job-name">每日结算任务</div>
+          <div class="tiny muted">逾期统计 · 超期读者停用 · 过期预约清理（每天 02:00 自动执行）</div>
+        </div>
+        <div class="job-actions">
+          <el-tag size="small" type="info" effect="plain">锁：{{ lockProvider }}</el-tag>
+          <el-button size="small" :loading="running" @click="runJob()">立即执行</el-button>
+          <el-button size="small" type="primary" plain :loading="running" @click="runJob(2500)">并发演练（持锁 2.5s）</el-button>
+        </div>
+      </div>
+      <div v-if="jobResult" class="job-result tiny">
+        最近执行：{{ jobResult.executedAt }} · 逾期 {{ jobResult.overdueLoans }} 条 · 停用 {{ jobResult.suspendedReaders }} 位 ·
+        取消预约 {{ jobResult.expiredReservations }} 条 · 耗时 {{ jobResult.costMs }}ms
+      </div>
+    </div>
+
   <div class="card" style="max-width: 780px">
     <div class="card-title">借阅规则
       <span class="tiny muted">{{ auth.isAdmin ? '修改后立即对新借阅生效' : '仅管理员可修改' }}</span>
@@ -30,16 +52,20 @@
       </el-form-item>
     </el-form>
   </div>
+  </div>
 </template>
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { settingApi } from '@/api'
+import { jobApi, settingApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 const saving = ref(false)
+const running = ref(false)
+const jobResult = ref(null)
+const lockProvider = ref('mysql')
 const form = reactive({
   loan_days_student: 30, loan_days_teacher: 60, loan_days_public: 15,
   max_borrow_student: 5, max_borrow_teacher: 10, max_borrow_public: 3,
@@ -65,5 +91,28 @@ async function save() {
   }
 }
 
-onMounted(load)
+async function runJob(holdMs = 0) {
+  running.value = true
+  try {
+    jobResult.value = await jobApi.settle(holdMs)
+    ElMessage.success('任务执行完成')
+  } finally {
+    running.value = false
+  }
+}
+
+onMounted(async () => {
+  await load()
+  try {
+    const info = await jobApi.locks()
+    lockProvider.value = info.provider
+  } catch (e) { /* 非管理员忽略 */ }
+})
 </script>
+
+<style scoped>
+.job-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0 10px; }
+.job-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.job-actions { display: flex; align-items: center; gap: 8px; }
+.job-result { background: #f4f7fd; border-radius: 8px; padding: 8px 10px; color: #475467; }
+</style>

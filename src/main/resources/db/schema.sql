@@ -107,6 +107,15 @@ CREATE TABLE IF NOT EXISTS audit_log (
   KEY idx_audit_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='操作审计';
 
+CREATE TABLE IF NOT EXISTS lock_guard (
+  lock_name   VARCHAR(64) NOT NULL COMMENT '锁名称',
+  owner       VARCHAR(64) NOT NULL COMMENT '持有者标识',
+  expire_at   DATETIME(3) NOT NULL COMMENT '租约到期时间',
+  acquired_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (lock_name),
+  KEY idx_lock_expire (expire_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='分布式锁（MySQL 实现）';
+
 CREATE TABLE IF NOT EXISTS setting (
   id    BIGINT       NOT NULL AUTO_INCREMENT,
   k     VARCHAR(64)  NOT NULL,

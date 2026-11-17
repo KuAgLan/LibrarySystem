@@ -37,6 +37,11 @@ mybatis-plus:
       logic-not-delete-value: 0
 
 app:
+  lock:
+    provider: ${LOCK_PROVIDER:mysql}
+    ttl-seconds: 60
+  job:
+    nightly-cron: ${NIGHTLY_CRON:0 0 2 * * ?}
   jwt:
     secret: ${JWT_SECRET:library-system-dev-secret-key-change-me-2024}
     expire-hours: ${JWT_EXPIRE_HOURS:12}

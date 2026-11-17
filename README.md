@@ -90,6 +90,37 @@ node docs/tests/api-test.mjs http://127.0.0.1:8090
 
 覆盖：登录与错误密码、未授权拦截、借书扣库存、续借上限、重复还书、库存回滚、404、看板聚合、馆员越权删除。当前 **15 项全部通过**。
 
+
+## 🔒 分布式锁（多实例只跑一次）
+
+定时任务（每日结算）在多实例部署时会重复执行，用分布式锁兜底，两套实现可切换：
+
+| 实现 | 依赖 | 原理 | 启用方式 |
+| --- | --- | --- | --- |
+| **MySQL**（默认） | 仅需数据库 | `lock_guard` 表主键唯一约束；`INSERT` 抢占，冲突时 `UPDATE ... WHERE expire_at < NOW(3)` 抢占过期锁；释放校验 owner | `app.lock.provider=mysql` |
+| **Redis** | Redis 6+ | `SET key owner NX PX ttl` 获取；Lua 脚本校验 owner 后 `DEL` / `PEXPIRE` | `app.lock.provider=redis` |
+
+```sql
+CREATE TABLE lock_guard (
+  lock_name VARCHAR(64) PRIMARY KEY,
+  owner     VARCHAR(64) NOT NULL,   -- 持有者标识（UUID）
+  expire_at DATETIME(3) NOT NULL    -- 租约到期，持有者崩溃后自动可抢占
+);
+```
+
+- 租约 TTL 默认 60s（`app.lock.ttl-seconds`），持有者异常退出后锁自动过期，不会死锁
+- 看门狗续租：任务执行期间按 1/3 TTL 后台续租，长任务不会被误抢占
+- 释放校验 owner：只允许持有者释放，避免过期后误删别人的锁
+- 管理接口：`POST /admin/jobs/settle`（含 `holdMs` 并发演练参数）、`GET /admin/jobs/locks`；系统设置页提供「立即执行 / 并发演练」按钮
+
+验证脚本 `docs/tests/lock-test.mjs`（10 项全绿）：
+
+```text
+✅ 并发 4 个请求只有 1 个执行 — 成功 1 次，被锁拒绝 3 次
+✅ 其余请求返回 409 且提示锁被占用
+✅ 并发结束后锁已释放 / 任务执行写入审计日志
+✅ 过期锁（模拟宕机遗留）被正常抢占，任务继续执行
+```
 ## 🔧 关键实现
 
 - **防并发超借**：`UPDATE book SET available_copies = available_copies - 1 WHERE id = ? AND available_copies > 0`，受影响行数为 0 即拒绝，配合事务保证账实一致

@@ -46,6 +46,11 @@ export const settingApi = {
   save: (data) => http.put('/settings', data)
 }
 
+export const jobApi = {
+  settle: (holdMs = 0) => http.post(`/admin/jobs/settle?holdMs=${holdMs}`),
+  locks: () => http.get('/admin/jobs/locks')
+}
+
 export const logApi = {
   page: (params) => http.get('/logs', { params })
 }
