@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/loans")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+@PreAuthorize("hasRole('ADMIN')")
 public class LoanController {
 
     private final LoanService loanService;

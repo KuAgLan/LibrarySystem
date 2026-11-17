@@ -16,7 +16,7 @@
         <p class="tiny muted">请使用馆员账号登录</p>
         <el-form :model="form" @submit.prevent="submit">
           <el-form-item>
-            <el-input v-model="form.username" size="large" placeholder="账号" :prefix-icon="User" />
+            <el-input v-model="form.username" size="large" placeholder="账号 / 借书证号" :prefix-icon="User" />
           </el-form-item>
           <el-form-item>
             <el-input v-model="form.password" size="large" type="password" show-password placeholder="密码" :prefix-icon="Lock" @keyup.enter="submit" />
@@ -24,7 +24,8 @@
           <el-button type="primary" size="large" style="width: 100%" :loading="loading" @click="submit">登 录</el-button>
         </el-form>
         <div class="tips tiny muted">
-          默认账号：admin / admin123（管理员）· librarian / lib123456（馆员）
+          管理员：admin / admin123<br />
+          读　者：R20241001 / 123456（借书证号登录）
         </div>
       </div>
     </div>
@@ -48,8 +49,8 @@ async function submit() {
   loading.value = true
   try {
     await auth.login({ ...form })
-    ElMessage.success('登录成功')
-    router.push('/dashboard')
+    ElMessage.success(`登录成功，欢迎 ${auth.user?.name}`)
+    router.push(auth.homePath)
   } finally {
     loading.value = false
   }

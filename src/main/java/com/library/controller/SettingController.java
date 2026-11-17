@@ -11,6 +11,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/settings")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class SettingController {
 
     private final SettingService settingService;

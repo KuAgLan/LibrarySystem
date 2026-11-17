@@ -23,13 +23,14 @@ public class JwtUtil {
         this.expireMillis = Math.max(1, hours) * 3600_000L;
     }
 
-    public String create(Long userId, String username, String name, String role) {
+    public String create(Long userId, String username, String name, String role, String actor) {
         Date now = new Date();
         return Jwts.builder()
                 .subject(String.valueOf(userId))
                 .claim("username", username)
                 .claim("name", name)
                 .claim("role", role)
+                .claim("actor", actor)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expireMillis))
                 .signWith(key)

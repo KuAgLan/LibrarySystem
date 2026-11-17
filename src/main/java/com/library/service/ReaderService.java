@@ -11,6 +11,7 @@ import com.library.entity.Reader;
 import com.library.mapper.LoanMapper;
 import com.library.mapper.ReaderMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,10 @@ public class ReaderService {
     private final ReaderMapper readerMapper;
     private final LoanMapper loanMapper;
     private final AuditService auditService;
+    private final PasswordEncoder passwordEncoder;
+
+    /** 新建读者的门户初始密码 */
+    public static final String DEFAULT_PASSWORD = "123456";
 
     public PageVO<Reader> page(String keyword, String type, String status, long pageNo, long pageSize) {
         var wrapper = Wrappers.<Reader>lambdaQuery();
@@ -61,6 +66,7 @@ public class ReaderService {
         Reader reader = new Reader();
         reader.setCardNo(generateCardNo());
         apply(reader, request);
+        reader.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD));
         reader.setUnpaidFine(BigDecimal.ZERO);
         reader.setBorrowedNow(0);
         reader.setTotalBorrow(0);
@@ -125,6 +131,18 @@ public class ReaderService {
         }
         auditService.log("READER_FINE_PAY", "reader", id, "缴纳罚金 " + amount.toPlainString() + " 元");
         return readerMapper.selectById(id);
+    }
+
+    /** 管理员重置读者门户密码 */
+    @Transactional
+    public void resetPassword(Long id) {
+        Reader reader = require(id);
+        Reader update = new Reader();
+        update.setId(id);
+        update.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD));
+        readerMapper.updateById(update);
+        auditService.log("READER_RESET_PASSWORD", "reader", id,
+                "重置 " + reader.getName() + " 的门户密码为默认密码");
     }
 
     private void apply(Reader target, ReaderRequest request) {

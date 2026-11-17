@@ -46,7 +46,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(reg -> reg
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/auth/login", "/health", "/error").permitAll()
-                        .requestMatchers("/auth/**", "/admin/**", "/books/**", "/readers/**", "/loans/**",
+                        .requestMatchers("/auth/**", "/admin/**", "/reader/**", "/books/**", "/readers/**", "/loans/**",
                                 "/reservations/**", "/reports/**", "/settings/**", "/logs/**").authenticated()
                         .anyRequest().permitAll())
                 .exceptionHandling(ex -> ex

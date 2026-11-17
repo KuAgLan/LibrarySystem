@@ -8,6 +8,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isLogin = computed(() => Boolean(token.value))
   const isAdmin = computed(() => user.value?.role === 'ADMIN')
+  const isReader = computed(() => user.value?.role === 'READER')
+  const homePath = computed(() => (isReader.value ? '/reader' : '/dashboard'))
 
   async function login(form) {
     const data = await authApi.login(form)
@@ -25,5 +27,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('lib_user')
   }
 
-  return { token, user, isLogin, isAdmin, login, logout }
+  return { token, user, isLogin, isAdmin, isReader, homePath, login, logout }
 })

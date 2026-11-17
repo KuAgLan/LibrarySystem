@@ -15,6 +15,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/readers")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class ReaderController {
 
     private final ReaderService readerService;
@@ -34,13 +35,13 @@ public class ReaderController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public R<Reader> create(@Valid @RequestBody ReaderRequest request) {
         return R.ok(readerService.create(request));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public R<Reader> update(@PathVariable Long id, @Valid @RequestBody ReaderRequest request) {
         return R.ok(readerService.update(id, request));
     }
@@ -53,13 +54,20 @@ public class ReaderController {
     }
 
     @PostMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public R<Reader> setStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
         return R.ok(readerService.setStatus(id, body.get("status")));
     }
 
+    @PostMapping("/{id}/reset-password")
+    @PreAuthorize("hasRole('ADMIN')")
+    public R<Void> resetPassword(@PathVariable Long id) {
+        readerService.resetPassword(id);
+        return R.success();
+    }
+
     @PostMapping("/{id}/pay-fine")
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public R<Reader> payFine(@PathVariable Long id) {
         return R.ok(readerService.payFine(id));
     }

@@ -49,6 +49,7 @@
             <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
             <el-button link type="warning" @click="toggle(row)">{{ row.status === 'ACTIVE' ? '停用' : '启用' }}</el-button>
             <el-button link type="success" :disabled="Number(row.unpaidFine) <= 0" @click="payFine(row)">缴罚金</el-button>
+            <el-button v-if="auth.isAdmin" link @click="resetPassword(row)">重置密码</el-button>
             <el-button v-if="auth.isAdmin" link type="danger" @click="remove(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -157,6 +158,12 @@ async function payFine(row) {
   await readerApi.payFine(row.id)
   ElMessage.success('罚金已结清')
   load()
+}
+
+async function resetPassword(row) {
+  await ElMessageBox.confirm(`重置 ${row.name} 的门户密码为 123456？`, '提示', { type: 'warning' })
+  await readerApi.resetPassword(row.id)
+  ElMessage.success('已重置为 123456')
 }
 
 async function remove(row) {

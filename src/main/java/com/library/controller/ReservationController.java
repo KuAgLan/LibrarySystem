@@ -15,7 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/reservations")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+@PreAuthorize("hasRole('ADMIN')")
 public class ReservationController {
 
     private final ReservationService reservationService;

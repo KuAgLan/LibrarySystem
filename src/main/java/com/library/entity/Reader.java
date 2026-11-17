@@ -23,6 +23,7 @@ public class Reader {
     /** STUDENT / TEACHER / PUBLIC */
     private String type;
     private String department;
+    private String password;
     /** ACTIVE / SUSPENDED */
     private String status;
     private BigDecimal unpaidFine;

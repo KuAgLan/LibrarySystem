@@ -56,7 +56,6 @@ public class DataSeeder implements ApplicationRunner {
 
     private void seedUsers() {
         createUser("admin", "admin123", "系统管理员", "ADMIN");
-        createUser("librarian", "lib123456", "馆员A", "LIBRARIAN");
     }
 
     private void createUser(String username, String password, String name, String role) {
@@ -126,6 +125,7 @@ public class DataSeeder implements ApplicationRunner {
             reader.setName(r.name());
             reader.setPhone(r.phone());
             reader.setEmail("");
+            reader.setPassword(passwordEncoder.encode("123456"));
             reader.setType(r.type());
             reader.setDepartment(r.dept());
             reader.setStatus("ACTIVE");

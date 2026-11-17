@@ -19,7 +19,8 @@ export const readerApi = {
   update: (id, data) => http.put(`/readers/${id}`, data),
   remove: (id) => http.delete(`/readers/${id}`),
   setStatus: (id, status) => http.post(`/readers/${id}/status`, { status }),
-  payFine: (id) => http.post(`/readers/${id}/pay-fine`)
+  payFine: (id) => http.post(`/readers/${id}/pay-fine`),
+  resetPassword: (id) => http.post(`/readers/${id}/reset-password`)
 }
 
 export const loanApi = {
@@ -44,6 +45,18 @@ export const reportApi = {
 export const settingApi = {
   get: () => http.get('/settings'),
   save: (data) => http.put('/settings', data)
+}
+
+export const portalApi = {
+  profile: () => http.get('/reader/profile'),
+  books: (params) => http.get('/reader/books', { params }),
+  loans: (params) => http.get('/reader/loans', { params }),
+  borrow: (bookId) => http.post('/reader/loans/borrow', { bookId }),
+  renew: (loanId) => http.post(`/reader/loans/${loanId}/renew`),
+  reserve: (bookId) => http.post(`/reader/books/${bookId}/reserve`),
+  reservations: () => http.get('/reader/reservations'),
+  cancelReservation: (id) => http.post(`/reader/reservations/${id}/cancel`),
+  fine: () => http.get('/reader/fine')
 }
 
 export const jobApi = {

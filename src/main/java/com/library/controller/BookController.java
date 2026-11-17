@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/books")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class BookController {
 
     private final BookService bookService;
@@ -32,13 +33,13 @@ public class BookController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public R<Book> create(@Valid @RequestBody BookRequest request) {
         return R.ok(bookService.create(request));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public R<Book> update(@PathVariable Long id, @Valid @RequestBody BookRequest request) {
         return R.ok(bookService.update(id, request));
     }

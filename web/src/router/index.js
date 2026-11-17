@@ -4,7 +4,20 @@ import { useAuthStore } from '@/stores/auth'
 const routes = [
   { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { public: true } },
   {
+    path: '/reader',
+    component: () => import('@/layouts/ReaderLayout.vue'),
+    redirect: '/reader/home',
+    meta: { roles: ['READER'] },
+    children: [
+      { path: 'home', name: 'reader-home', component: () => import('@/views/reader/ReaderHome.vue'), meta: { title: '馆藏检索', roles: ['READER'] } },
+      { path: 'loans', name: 'reader-loans', component: () => import('@/views/reader/ReaderLoans.vue'), meta: { title: '我的借阅', roles: ['READER'] } },
+      { path: 'reservations', name: 'reader-reservations', component: () => import('@/views/reader/ReaderReservations.vue'), meta: { title: '我的预约', roles: ['READER'] } },
+      { path: 'profile', name: 'reader-profile', component: () => import('@/views/reader/ReaderProfile.vue'), meta: { title: '个人中心', roles: ['READER'] } }
+    ]
+  },
+  {
     path: '/',
+    meta: { roles: ['ADMIN'] },
     component: () => import('@/layouts/MainLayout.vue'),
     redirect: '/dashboard',
     children: [
@@ -26,8 +39,8 @@ const router = createRouter({ history: createWebHashHistory(), routes })
 router.beforeEach((to) => {
   const auth = useAuthStore()
   if (!to.meta.public && !auth.isLogin) return { path: '/login' }
-  if (to.path === '/login' && auth.isLogin) return { path: '/dashboard' }
-  if (to.meta.roles && !to.meta.roles.includes(auth.user?.role)) return { path: '/dashboard' }
+  if (to.path === '/login' && auth.isLogin) return { path: auth.homePath }
+  if (to.meta.roles && !to.meta.roles.includes(auth.user?.role)) return { path: auth.homePath }
   return true
 })
 

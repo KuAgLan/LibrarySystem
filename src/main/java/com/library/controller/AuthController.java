@@ -30,7 +30,7 @@ public class AuthController {
         AuthUser user = auditService.current();
         Map<String, Object> data = new java.util.LinkedHashMap<>();
         data.put("user", authService.me(user));
-        data.put("permissions", Map.of("admin", user.isAdmin()));
+        data.put("permissions", Map.of("admin", user.isAdmin(), "reader", user.isReader()));
         return R.ok(data);
     }
 
