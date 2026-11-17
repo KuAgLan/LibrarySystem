@@ -1,0 +1,123 @@
+<div align="center">
+
+# 图书管理系统 · LibrarySystem
+
+**图书 · 读者 · 借还 · 预约 · 罚金 · 报表** 一体化图书馆后台
+
+Spring Boot 3 + Vue 3 + MySQL 8 ｜ 前后端分离 ｜ 单 jar 部署
+
+![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.5-6DB33F?logo=springboot&logoColor=white)
+![MyBatis-Plus](https://img.shields.io/badge/MyBatis--Plus-3.5.7-2E8B57)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)
+![Vue](https://img.shields.io/badge/Vue-3.5-42B883?logo=vuedotjs&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?logo=vite&logoColor=white)
+![Element Plus](https://img.shields.io/badge/Element%20Plus-2.8-409EFF)
+![Tests](https://img.shields.io/badge/API%20tests-15%20passed-2ea44f)
+![License](https://img.shields.io/badge/License-MIT-yellow)
+
+</div>
+
+> **v2.0 已从「Java 控制台 + 原生 JDBC」重写为 Spring Boot 3 + Vue 3 前后端分离架构**，
+> 原控制台版本保留在分支 [`legacy-jdbc`](../../tree/legacy-jdbc)。
+
+## ✨ 功能
+
+| 模块 | 能力 |
+| --- | --- |
+| 图书管理 | 新增 / 编辑 / 软删除、ISBN 唯一校验、馆藏数与可借数分离、上架 / 下架、分类与馆藏位置 |
+| 读者管理 | 借书证自动生成、三种类型（学生 / 教师 / 社会）、院系单位、停用 / 启用、欠费与在借数 |
+| 借还办理 | 借书 / 还书 / 续借、额度与逾期校验、库存条件更新（防并发超借）、一键导出 CSV |
+| 逾期罚金 | 按天计费 + 单本上限、还书自动结算、欠费达阈值自动停用、前台一键收款结清 |
+| 预约排队 | 无可借副本时排队、归还后自动通知队首、重复预约拦截、可取消 |
+| 统计报表 | 月度借阅趋势、分类借阅量、热门 TOP 10、逾期名单、CSV 导出 |
+| 权限 | `ADMIN`（全部）/ `LIBRARIAN`（业务操作），删除与设置仅管理员；接口级 `@PreAuthorize` |
+| 审计 | 登录、图书、读者、借还、预约、罚金全量写 `audit_log`，可在「操作日志」检索 |
+| 规则配置 | 借期、借阅上限、续借次数与天数、日罚金、罚款上限、欠费禁借阈值，后台可视化配置 |
+
+## 🖼 界面截图
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/02-dashboard.png" alt="数据看板"/><br/><sub>数据看板：馆藏、在借、逾期、趋势与热门榜</sub></td>
+<td width="50%"><img src="docs/screenshots/03-books.png" alt="图书管理"/><br/><sub>图书管理：检索、馆藏 / 可借、上下架</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/04-borrow.png" alt="办理借书"/><br/><sub>借还办理：读者 + 图书远程检索，实时校验额度</sub></td>
+<td width="50%"><img src="docs/screenshots/05-reports.png" alt="统计报表"/><br/><sub>统计报表：月度趋势、分类占比、逾期与导出</sub></td>
+</tr>
+</table>
+
+## 🏗 架构
+
+```
+浏览器 ──▶ Spring Boot 3（:8090）
+            ├─ 静态资源：内置 Vue3 打包产物（SPA，History 回退）
+            ├─ REST API：/auth /books /readers /loans /reservations /reports /settings /logs
+            ├─ JWT 鉴权（HS256，12h）+ @PreAuthorize + 操作人审计
+            └─ MySQL 8.0：book / reader / loan / reservation / audit_log / sys_user / setting
+```
+
+分层：`Controller`（参数校验 + 权限）→ `Service`（借阅规则、罚金、预约联动）→ `Mapper`（MyBatis-Plus + 统计 SQL）→ MySQL。
+
+## 🚀 快速开始
+
+**环境**：JDK 17+（推荐 21）· Maven 3.9+ · Node 18+ · MySQL 8.0
+
+```bash
+# 1) 建库
+mysql -uroot -p -e "CREATE DATABASE library_db DEFAULT CHARSET utf8mb4;
+CREATE USER 'library_app'@'localhost' IDENTIFIED BY 'library_app_2024';
+GRANT ALL ON library_db.* TO 'library_app'@'localhost'; FLUSH PRIVILEGES;"
+
+# 2) 后端（自动建表 + 写入演示数据）
+mvn -DskipTests package
+java -jar target/library-system.jar          # http://127.0.0.1:8090
+
+# 3) 前端（开发模式，热更新）
+cd web && npm install && npm run dev         # http://127.0.0.1:5174
+```
+
+**生产单 jar**：`powershell -File scripts/build-all.ps1`（前端打包 → 拷入静态资源 → 打 jar），产物 `target/library-system.jar` 内置页面，直接访问 `http://127.0.0.1:8090`。
+
+**默认账号**：`admin / admin123`（管理员）· `librarian / lib123456`（馆员）
+
+## 🧪 验收
+
+```bash
+node docs/tests/api-test.mjs http://127.0.0.1:8090
+```
+
+覆盖：登录与错误密码、未授权拦截、借书扣库存、续借上限、重复还书、库存回滚、404、看板聚合、馆员越权删除。当前 **15 项全部通过**。
+
+## 🔧 关键实现
+
+- **防并发超借**：`UPDATE book SET available_copies = available_copies - 1 WHERE id = ? AND available_copies > 0`，受影响行数为 0 即拒绝，配合事务保证账实一致
+- **罚金计算**：逾期天数向上取整 × 日罚金，封顶单本上限；还书时一次结算并累计到读者欠费
+- **借阅校验链**：读者启用 → 未达借阅上限 → 无逾期未还 → 欠费低于阈值 → 图书在架且有可借副本
+- **预约联动**：归还时把队首预约置为 `NOTIFIED`；有预约排队时禁止续借
+- **管理端实时性**：借阅规则存 `setting` 表，修改后对新借阅立即生效，无需重启
+
+## 📁 目录
+
+```
+src/main/java/com/library/
+├─ common/      R · BizException · GlobalExceptionHandler · PageVO
+├─ config/      SecurityConfig · JwtUtil · JwtAuthFilter · MybatisPlusConfig · JacksonConfig · WebConfig
+├─ entity/      SysUser · Book · Reader · Loan · Reservation · AuditLog · Setting
+├─ mapper/      BaseMapper + BookMapper/ReaderMapper/LoanMapper（条件更新与联表统计）+ ReportMapper
+├─ service/     Auth · Book · Reader · Loan · Reservation · Report · Setting · Audit · DataSeeder
+├─ controller/  Auth · Book · Reader · Loan · Reservation · Report · Setting · Log · Health
+└─ vo/ dto/     LoanVO · ReservationVO + 请求体（Bean Validation）
+web/src/        api · stores · router · layouts · components · views（9 个页面）
+docs/           tests/api-test.mjs · screenshots/
+scripts/        build-all.ps1（一键构建单 jar）
+```
+
+## ⚠️ 说明
+
+演示数据（`读者001`、`138000000xx`、书名作者）均为公开出版物信息与虚构读者，可直接公开使用。生产部署请替换 `JWT_SECRET`、数据库账号密码，并按需关闭演示数据（`SEED_DEMO_DATA=false`）。
+
+## 📄 License
+
+[MIT](LICENSE)

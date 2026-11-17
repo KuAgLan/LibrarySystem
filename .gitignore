@@ -1,0 +1,17 @@
+# Java / Maven
+target/
+*.class
+*.log
+.run/
+
+# 前端
+web/node_modules/
+web/dist/
+src/main/resources/static/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
