@@ -13,13 +13,12 @@ Spring Boot 3 + Vue 3 + MySQL 8 ｜ 前后端分离 ｜ 单 jar 部署
 ![Vue](https://img.shields.io/badge/Vue-3.5-42B883?logo=vuedotjs&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?logo=vite&logoColor=white)
 ![Element Plus](https://img.shields.io/badge/Element%20Plus-2.8-409EFF)
-![Tests](https://img.shields.io/badge/API%20tests-15%20passed-2ea44f)
+![Tests](https://img.shields.io/badge/API%20tests-40%20passed-2ea44f)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 </div>
 
-> **v2.0 已从「Java 控制台 + 原生 JDBC」重写为 Spring Boot 3 + Vue 3 前后端分离架构**，
-> 原控制台版本保留在分支 [`legacy-jdbc`](../../tree/legacy-jdbc)。
+> **v2.0 全量重写**：Spring Boot 3 + Vue 3 前后端分离，管理员后台 + 读者门户双端。
 
 ## ✨ 功能
 
