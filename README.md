@@ -14,7 +14,10 @@ Spring Boot 3 + Vue 3 + MySQL 8 ｜ 前后端分离 ｜ 管理员后台 + 读者
 ![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?logo=vite&logoColor=white)
 ![Element Plus](https://img.shields.io/badge/Element%20Plus-2.8-409EFF)
 ![Lock](https://img.shields.io/badge/Lock-MySQL%20%7C%20Redis-c1121f)
-![Tests](https://img.shields.io/badge/API%20tests-40%20passed-2ea44f)
+![CI](https://github.com/KuAgLan/LibrarySystem/actions/workflows/ci.yml/badge.svg)
+![Tests](https://img.shields.io/badge/JUnit-9%20passed-2ea44f)
+![API tests](https://img.shields.io/badge/API%20tests-40%20passed-2ea44f)
+![QPS](https://img.shields.io/badge/QPS-4201%20%40p99%20147ms-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 [功能](#-功能) · [截图](#-界面截图) · [架构](#-架构) · [快速开始](#-快速开始) · [技术栈](#-技术栈) · [文档](#-文档)
@@ -105,6 +108,21 @@ cd web && npm install && npm run dev         # http://127.0.0.1:5174
 | [docs/README-full.md](docs/README-full.md) | 完整版说明（两类用户细则、关键实现、常见问题） |
 | [docs/tests](docs/tests) | 3 个验收脚本：接口 15 项 · 身份权限 15 项 · 分布式锁 10 项 |
 
+## 📖 接口文档（Knife4j）
+
+启动后访问 **`http://127.0.0.1:8090/doc.html`**：自动扫描 11 个控制器、42 个接口，点右上角 `Authorize` 填入登录返回的 token 即可在线调试（OpenAPI 3 规范，也可导出 JSON 供 Apifox / Postman 导入）。
+
+<img src="docs/screenshots/12-api-docs.png" alt="接口文档" width="100%"/>
+
+## 🧪 质量保障
+
+| 类型 | 内容 | 结果 |
+| --- | --- | --- |
+| 单元测试 | `LoanServiceTest`：额度上限 / 逾期禁借 / 欠费阈值 / 无库存 / 并发抢空 / 罚金封顶 / 重复还书 / 预约占位禁续借（Mockito） | **8 项通过** |
+| 集成测试 | `BookStockConcurrencyTest`：10 线程抢最后 1 册，仅 1 成功且库存不为负（真实 MySQL） | **1 项通过** |
+| 接口验收 | `docs/tests/api-test.mjs` · `identity-test.mjs` · `lock-test.mjs` | 15 + 15 + 10 项 |
+| 持续集成 | GitHub Actions：JDK 21 + MySQL 8 service 跑测试，Node 20 构建前端 | [![CI](https://github.com/KuAgLan/LibrarySystem/actions/workflows/ci.yml/badge.svg)](https://github.com/KuAgLan/LibrarySystem/actions/workflows/ci.yml) |
+| 压测 | autocannon 200 并发：`GET /books` **4,201 req/s / p99 147ms**，详见 [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | — |
 ## ✅ 已覆盖的关键边界
 
 并发超借 · 借阅上限 · 逾期禁借 · 欠费禁借 · 重复还书 · 重复预约 · 越权访问（读者 / 管理员双向 403）· 未登录 401 · 过期锁抢占 · 并发任务互斥 · 审计留痕

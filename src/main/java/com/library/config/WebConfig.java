@@ -16,7 +16,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/**")
-                .addResourceLocations("classpath:/static/")
+                .addResourceLocations("classpath:/static/", "classpath:/META-INF/resources/", "classpath:/webjars/")
                 .resourceChain(true)
                 .addResolver(new PathResourceResolver() {
                     @Override
@@ -25,7 +25,9 @@ public class WebConfig implements WebMvcConfigurer {
                         if (requested.exists() && requested.isReadable()) {
                             return requested;
                         }
-                        if (resourcePath.startsWith("api/")) {
+                        // 带扩展名的静态资源（doc.html、xxx.js 等）找不到就交给下一个 location，
+                        // 只有无扩展名的前端路由才回退到 index.html
+                        if (resourcePath.startsWith("api/") || resourcePath.contains(".")) {
                             return null;
                         }
                         Resource index = new ClassPathResource("static/index.html");

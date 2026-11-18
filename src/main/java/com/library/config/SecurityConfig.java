@@ -46,6 +46,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(reg -> reg
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/auth/login", "/health", "/error").permitAll()
+                        .requestMatchers("/doc.html", "/webjars/**", "/v3/api-docs/**",
+                                "/swagger-ui/**", "/swagger-resources/**", "/favicon.ico").permitAll()
                         .requestMatchers("/auth/**", "/admin/**", "/reader/**", "/books/**", "/readers/**", "/loans/**",
                                 "/reservations/**", "/reports/**", "/settings/**", "/logs/**").authenticated()
                         .anyRequest().permitAll())
